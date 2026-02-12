@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   updateProfileAction,
   updateBaseCurrencyAction,
@@ -62,10 +63,22 @@ export function ProfileForm({ displayName }: { displayName: string }) {
 }
 
 export function CurrencyForm({ baseCurrency }: { baseCurrency: string }) {
+  const router = useRouter();
   const [state, formAction, isPending] = useActionState(
     updateBaseCurrencyAction,
     initialState
   );
+  const [selectedCurrency, setSelectedCurrency] = useState(baseCurrency);
+
+  useEffect(() => {
+    setSelectedCurrency(baseCurrency);
+  }, [baseCurrency]);
+
+  useEffect(() => {
+    if (state.success) {
+      router.refresh();
+    }
+  }, [state.success, router]);
 
   const currencyOptions = SUPPORTED_CURRENCIES.map((c) => ({
     value: c.code,
@@ -100,7 +113,8 @@ export function CurrencyForm({ baseCurrency }: { baseCurrency: string }) {
             name="base_currency"
             label="Moneda base"
             options={currencyOptions}
-            defaultValue={baseCurrency}
+            value={selectedCurrency}
+            onChange={(event) => setSelectedCurrency(event.target.value)}
             error={state.fieldErrors?.base_currency?.[0]}
           />
 

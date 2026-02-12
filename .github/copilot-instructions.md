@@ -26,10 +26,10 @@ Ejecuta estas rutinas mentales cuando la tarea lo requiera:
   Nunca cambies la lógica de negocio al refactorizar. Solo mejora legibilidad o rendimiento.
   Añade comentarios explicando el *por qué* del cambio.
 
-## 3. ESTÁNDARES DE CÓDIGO
-- **Lenguaje:** (Ej: TypeScript Estricto).
-- **Principios:** SOLID, DRY, YAGNI.
-- **Seguridad:** Nunca hardcodees credenciales (usa .env).
+- **Skill [UI/UX_EXPERT]:**
+  Actívala cuando se soliciten cambios de interfaz, diseño o frontend visual.
+  1. **Análisis Visual (Gestalt):** Antes de codificar, asegura jerarquía visual. Usa whitespace generoso, bordes sutiles y sombras suaves (estilo Modern Minimal/Glassmorphism).
+  2. **Accesibilidad (A11y):** Requisito estricto. Verifica contraste de colores (WCAG AA) y asegura que los elementos interactivos tengan estados claros (:hover, :focus, :active). 3. **Lógica de UX:** Si el usuario reporta fallos de interacción (ej: cambio de moneda), rastrea el flujo del estado (State Management) y la persistencia (LocalStorage/DB) antes de tocar estilos. 4. **Componentización:** Evita soluciones rígidas. Si se pide selección de iconos/emojis, implementa componentes dinámicos o librerías estándar, no listas hardcodeadas. ## 3. ESTÁNDARES DE CÓDIGO - **Lenguaje:** (Ej: TypeScript Estricto). - **Principios:** SOLID, DRY, YAGNI. - **Seguridad:** Nunca hardcodees credenciales (usa .env).
 
 ## 4. IDIOMA Y COMUNICACIÓN
 - Razonamiento interno: INGLÉS (para mayor precisión técnica).

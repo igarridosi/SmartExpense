@@ -13,11 +13,28 @@ export default async function SettingsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
+  if (!user) {
+    return null;
+  }
+
+  let { data: profile } = await supabase
     .from("profiles")
     .select("display_name, base_currency")
-    .eq("id", user!.id)
+    .eq("id", user.id)
     .single();
+
+  if (!profile) {
+    const { data: createdProfile } = await supabase
+      .from("profiles")
+      .upsert({
+        id: user.id,
+        display_name: user.user_metadata?.display_name ?? "",
+      })
+      .select("display_name, base_currency")
+      .single();
+
+    profile = createdProfile ?? null;
+  }
 
   const displayName =
     profile?.display_name ||
