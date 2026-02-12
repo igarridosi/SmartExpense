@@ -14,11 +14,11 @@ const variantStyles: Record<ButtonVariant, string> = {
   primary:
     "bg-blue-600 text-white shadow-sm hover:bg-blue-700 hover:shadow-md focus:ring-blue-500/25",
   secondary:
-    "bg-slate-100 text-slate-800 hover:bg-slate-200 focus:ring-slate-500/20",
+    "bg-zinc-100 text-zinc-800 hover:bg-zinc-200 focus:ring-zinc-500/20",
   danger:
     "bg-red-600 text-white shadow-sm hover:bg-red-700 hover:shadow-md focus:ring-red-500/25",
   ghost:
-    "bg-transparent text-slate-700 hover:bg-slate-100 focus:ring-slate-500/20",
+    "bg-transparent text-zinc-700 hover:bg-zinc-100 focus:ring-zinc-500/20",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -47,6 +47,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(
           "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-150",
           "focus:outline-none focus:ring-2",
+          "active:scale-95",
           "disabled:cursor-not-allowed disabled:opacity-50",
           variantStyles[variant],
           sizeStyles[size],

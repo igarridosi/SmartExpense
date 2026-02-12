@@ -2,6 +2,7 @@
 export const SUPPORTED_CURRENCIES = [
   { code: "USD", name: "Dólar estadounidense", symbol: "$" },
   { code: "EUR", name: "Euro", symbol: "€" },
+  { code: "CZK", name: "Corona checa", symbol: "Kč" },
   { code: "GBP", name: "Libra esterlina", symbol: "£" },
   { code: "COP", name: "Peso colombiano", symbol: "$" },
   { code: "MXN", name: "Peso mexicano", symbol: "$" },

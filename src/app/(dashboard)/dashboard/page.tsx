@@ -35,8 +35,10 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+    <div className="space-y-5">
+      <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
+        Dashboard
+      </h1>
 
       {/* Monthly stats */}
       <MonthlyTotal
@@ -46,11 +48,11 @@ export default async function DashboardPage() {
         year={year}
       />
 
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="grid gap-4 xl:grid-cols-12">
         {/* Pie chart — takes more space */}
-        <Card className="lg:col-span-3">
+        <Card className="xl:col-span-8">
           <CardHeader>
-            <CardTitle>
+            <CardTitle className="text-zinc-900">
               Gastos por categoría — {getMonthName(month)} {year}
             </CardTitle>
           </CardHeader>
@@ -63,9 +65,9 @@ export default async function DashboardPage() {
         </Card>
 
         {/* Recent expenses */}
-        <Card className="lg:col-span-2">
+        <Card className="xl:col-span-4">
           <CardHeader>
-            <CardTitle>Gastos recientes</CardTitle>
+            <CardTitle className="text-zinc-900">Gastos recientes</CardTitle>
           </CardHeader>
           <CardContent>
             <RecentExpenses

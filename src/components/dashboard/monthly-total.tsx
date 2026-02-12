@@ -23,51 +23,53 @@ export function MonthlyTotal({
   const monthName = getMonthName(month);
 
   return (
-    <div className="grid gap-4 sm:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-6">
       {/* Total spending */}
-      <Card>
+      <Card className="md:col-span-3">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-gray-500">
+          <CardTitle className="text-sm font-medium text-zinc-500">
             Total del mes
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-3xl font-bold text-gray-900">
+          <p className="text-4xl font-bold text-zinc-900 [font-variant-numeric:tabular-nums]">
             {formatCurrency(summary.total, baseCurrency)}
           </p>
-          <p className="mt-1 text-sm text-gray-500 capitalize">
+          <p className="mt-1 text-sm text-zinc-500 capitalize">
             {monthName} {year}
           </p>
         </CardContent>
       </Card>
 
       {/* Number of expenses */}
-      <Card>
+      <Card className="md:col-span-3 lg:col-span-2">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-gray-500">
+          <CardTitle className="text-sm font-medium text-zinc-500">
             Gastos registrados
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-3xl font-bold text-gray-900">{summary.count}</p>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="text-4xl font-bold text-zinc-900 [font-variant-numeric:tabular-nums]">
+            {summary.count}
+          </p>
+          <p className="mt-1 text-sm text-zinc-500">
             {summary.count === 1 ? "transacción" : "transacciones"}
           </p>
         </CardContent>
       </Card>
 
       {/* Average per expense */}
-      <Card>
+      <Card className="md:col-span-6 lg:col-span-1">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-gray-500">
+          <CardTitle className="text-sm font-medium text-zinc-500">
             Promedio por gasto
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-3xl font-bold text-gray-900">
+          <p className="text-2xl font-bold text-zinc-900 [font-variant-numeric:tabular-nums]">
             {formatCurrency(summary.avgPerExpense, baseCurrency)}
           </p>
-          <p className="mt-1 text-sm text-gray-500">por transacción</p>
+          <p className="mt-1 text-sm text-zinc-500">por transacción</p>
         </CardContent>
       </Card>
     </div>

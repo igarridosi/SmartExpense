@@ -16,7 +16,7 @@ export function RecentExpenses({ expenses, baseCurrency }: RecentExpensesProps) 
   if (expenses.length === 0) {
     return (
       <div className="py-8 text-center">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-zinc-500">
           Aún no hay gastos registrados.
         </p>
         <Link
@@ -30,7 +30,7 @@ export function RecentExpenses({ expenses, baseCurrency }: RecentExpensesProps) 
   }
 
   return (
-    <div className="divide-y divide-gray-100">
+    <div className="divide-y divide-zinc-100">
       {expenses.map((expense) => (
         <div
           key={expense.id}
@@ -46,10 +46,10 @@ export function RecentExpenses({ expenses, baseCurrency }: RecentExpensesProps) 
             </span>
 
             <div>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-medium text-zinc-900">
                 {expense.description || "Sin descripción"}
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-zinc-500">
                 {expense.categories.name} · {formatDate(expense.expense_date)}
                 {expense.source === "csv" && (
                   <span className="ml-1 rounded bg-blue-100 px-1 py-0.5 text-[10px] text-blue-600">
@@ -61,11 +61,11 @@ export function RecentExpenses({ expenses, baseCurrency }: RecentExpensesProps) 
           </div>
 
           <div className="text-right">
-            <p className="text-sm font-semibold text-gray-900">
+            <p className="text-sm font-semibold text-zinc-900 [font-variant-numeric:tabular-nums]">
               {formatCurrency(expense.amount_in_base, baseCurrency)}
             </p>
             {expense.currency !== baseCurrency && (
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-zinc-400 [font-variant-numeric:tabular-nums]">
                 {formatCurrency(expense.amount, expense.currency)}
               </p>
             )}

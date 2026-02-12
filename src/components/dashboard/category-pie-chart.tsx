@@ -18,7 +18,7 @@ interface CategoryPieChartProps {
 export function CategoryPieChart({ data, baseCurrency }: CategoryPieChartProps) {
   if (data.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center text-sm text-gray-400">
+      <div className="flex h-64 items-center justify-center text-sm text-zinc-400">
         No hay datos para mostrar este mes
       </div>
     );
@@ -66,12 +66,12 @@ export function CategoryPieChart({ data, baseCurrency }: CategoryPieChartProps) 
               if (!active || !payload || payload.length === 0) return null;
               const item = payload[0].payload;
               return (
-                <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
-                  <p className="font-medium text-gray-900">{item.name}</p>
-                  <p className="text-sm text-gray-600">
+                <div className="rounded-lg border border-zinc-200 bg-white p-3 shadow-lg">
+                  <p className="font-medium text-zinc-900">{item.name}</p>
+                  <p className="text-sm text-zinc-600 [font-variant-numeric:tabular-nums]">
                     {formatCurrency(item.value, baseCurrency)}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-zinc-500">
                     {item.percentage.toFixed(1)}% · {item.count}{" "}
                     {item.count === 1 ? "gasto" : "gastos"}
                   </p>
@@ -83,7 +83,7 @@ export function CategoryPieChart({ data, baseCurrency }: CategoryPieChartProps) 
             verticalAlign="bottom"
             height={36}
             formatter={(value: string) => (
-              <span className="text-xs text-gray-700">{value}</span>
+              <span className="text-xs text-zinc-700">{value}</span>
             )}
           />
         </PieChart>
