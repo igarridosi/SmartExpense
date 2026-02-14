@@ -25,13 +25,14 @@ export default async function InsightsPage({ searchParams }: InsightsPageProps) 
 
   const supabase = await createClient();
 
-  const [{ data: profile }, snapshot] = await Promise.all([
-    supabase.from("profiles").select("base_currency").single(),
-    getInsightsSnapshot(supabase, month, year),
-  ]);
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("base_currency")
+    .single();
 
   const monthLabel = getMonthName(month);
   const baseCurrency = profile?.base_currency ?? "USD";
+  const snapshot = await getInsightsSnapshot(supabase, month, year, baseCurrency);
 
   return (
     <div className="space-y-5">

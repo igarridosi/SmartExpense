@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { formatCurrency } from "@/lib/utils/currency";
 
 interface InsightExpenseRow {
   amount_in_base: number;
@@ -97,7 +98,8 @@ function clampPct(value: number): number {
 export async function getInsightsSnapshot(
   supabase: SupabaseClient,
   month: number,
-  year: number
+  year: number,
+  baseCurrency: string = "USD"
 ): Promise<InsightsSnapshot> {
   const selectedMonthStart = new Date(year, month - 1, 1);
   const previousMonthStart = new Date(year, month - 2, 1);
@@ -264,28 +266,36 @@ export async function getInsightsSnapshot(
   const hasActionableInsights =
     currentMonthRows.length >= 8 && activeDays >= 4 && topCategories.length >= 2;
 
+  const projectedMonthTotalFormatted = formatCurrency(projectedMonthTotal, baseCurrency);
+  const weekdayTotalFormatted = formatCurrency(weekdayTotal, baseCurrency);
+  const weekendTotalFormatted = formatCurrency(weekendTotal, baseCurrency);
+  const topExpenseFormatted = topSingleExpenses[0]
+    ? formatCurrency(topSingleExpenses[0].amount, baseCurrency)
+    : null;
+  const avgPerActiveDayFormatted = formatCurrency(avgPerActiveDay, baseCurrency);
+
   const actionableIdeas: ActionableInsight[] = [
     {
       title: "Proyección de cierre mensual",
       description:
         currentMonthTotal > 0
-          ? `Si mantienes este ritmo, cerrarías en ${Math.round(projectedMonthTotal)} unidades base.`
-          : "Aún no hay gasto suficiente este mes para proyectar con precisión.",
+          ? `Si mantienes este ritmo, el mes cerraría en ~${projectedMonthTotalFormatted} (importe total estimado del mes).`
+          : "Aún no hay suficientes importes registrados este mes para proyectar un cierre fiable.",
       severity: currentMonthTotal > 0 ? "info" : "warning",
     },
     {
       title: "Concentración por categoría",
       description: topCategory
-        ? `${topCategory.icon} ${topCategory.name} representa ${topCategory.share.toFixed(1)}% del mes. Conviene fijar un tope específico.`
-        : "No hay categorías dominantes todavía este mes.",
+        ? `${topCategory.icon} ${topCategory.name} concentra ${topCategory.share.toFixed(1)}% del gasto del mes (${formatCurrency(topCategory.total, baseCurrency)}). Puede ser útil definir un límite para esta categoría.`
+        : "No hay una categoría dominante todavía en el importe mensual registrado.",
       severity: topCategory && topCategory.share >= 35 ? "warning" : "success",
     },
     {
       title: "Patrón fin de semana",
       description:
         currentMonthTotal > 0
-          ? `El ${((weekendTotal / currentMonthTotal) * 100).toFixed(1)}% del gasto sucede en fin de semana. Comparado con días hábiles: ${Math.round(weekdayTotal)} vs ${Math.round(weekendTotal)}.`
-          : "No hay suficiente actividad para detectar patrón semanal.",
+          ? `El ${((weekendTotal / currentMonthTotal) * 100).toFixed(1)}% del gasto se registra en fin de semana. Importe comparado: laborables ${weekdayTotalFormatted} vs fin de semana ${weekendTotalFormatted}.`
+          : "No hay suficiente actividad registrada para detectar un patrón semanal fiable.",
       severity:
         currentMonthTotal > 0 && weekendTotal > weekdayTotal * 0.45
           ? "warning"
@@ -294,16 +304,16 @@ export async function getInsightsSnapshot(
     {
       title: "Ticket más alto del mes",
       description: topSingleExpenses[0]
-        ? `${topSingleExpenses[0].icon} ${topSingleExpenses[0].label} fue el mayor gasto unitario.`
-        : "Todavía no hay gastos destacados este mes.",
+        ? `${topSingleExpenses[0].icon} ${topSingleExpenses[0].label} es el gasto unitario más alto del mes (${topExpenseFormatted}).`
+        : "Todavía no hay suficientes gastos para identificar un ticket unitario destacado.",
       severity: "info",
     },
     {
       title: "Pulso de hábito de gasto",
       description:
         activeDays > 0
-          ? `Registraste movimientos en ${activeDays} días del mes, con un promedio de ${Math.round(avgPerActiveDay)} por día activo.`
-          : "Empieza registrando algunos gastos para obtener hábito y tendencias.",
+          ? `Has registrado gastos en ${activeDays} días del mes, con un promedio de ${avgPerActiveDayFormatted} por día activo.`
+          : "Empieza registrando algunos gastos para obtener métricas de hábito y tendencias más útiles.",
       severity: activeDays >= 10 ? "success" : "info",
     },
   ];

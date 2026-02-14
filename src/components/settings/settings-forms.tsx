@@ -105,7 +105,8 @@ export function CurrencyForm({ baseCurrency }: { baseCurrency: string }) {
 
           <p className="text-sm text-gray-500">
             Los totales del dashboard y las conversiones se mostrarán en esta
-            moneda. Los gastos existentes no se reconvertirán automáticamente.
+            moneda. Al guardar cambios, los gastos existentes se reconvertirán
+            automáticamente a esta divisa.
           </p>
 
           <Select
