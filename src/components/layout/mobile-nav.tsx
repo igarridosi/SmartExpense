@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils/cn";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: "📊" },
+  { name: "Insights", href: "/insights", icon: "✨" },
   { name: "Gastos", href: "/expenses", icon: "💸" },
   { name: "Importar CSV", href: "/expenses/import", icon: "📄" },
   { name: "Categorías", href: "/categories", icon: "🏷️" },
@@ -30,7 +31,7 @@ export function MobileNav() {
       {/* Hamburger button */}
       <button
         onClick={toggle}
-        className="flex items-center justify-center rounded-lg p-2 text-zinc-600 hover:bg-zinc-100 lg:hidden"
+        className="focus-ring flex items-center justify-center rounded-lg p-2 text-zinc-600 hover:bg-zinc-100 lg:hidden"
         aria-label="Abrir menú"
       >
         <svg
@@ -87,7 +88,7 @@ export function MobileNav() {
                 href={item.href}
                 onClick={close}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  "focus-ring flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
                     ? "bg-zinc-100 text-zinc-900 font-medium"
                     : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"

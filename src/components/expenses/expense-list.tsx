@@ -133,8 +133,9 @@ function ExpenseCard({
   }
 
   return (
-    <Card className="flex items-center justify-between p-4">
-      <div className="flex items-center gap-4">
+    <Card className="p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 flex-1 items-center gap-4">
         {/* Category icon */}
         <div
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xl"
@@ -167,7 +168,7 @@ function ExpenseCard({
       </div>
 
       {/* Amount + actions */}
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
         <div className="text-right">
           <p className="font-semibold text-gray-900">
             {formatCurrency(expense.amount, expense.currency)}
@@ -179,8 +180,14 @@ function ExpenseCard({
           )}
         </div>
 
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={onEdit}>
+        <div className="flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onEdit}
+            className="h-8 w-8 p-0 text-base"
+            aria-label="Editar gasto"
+          >
             ✏️
           </Button>
           <Button
@@ -188,10 +195,13 @@ function ExpenseCard({
             size="sm"
             onClick={handleDelete}
             isLoading={isDeleting}
+            className="h-8 w-8 p-0 text-base"
+            aria-label="Eliminar gasto"
           >
             🗑️
           </Button>
         </div>
+      </div>
       </div>
 
       {deleteError && (

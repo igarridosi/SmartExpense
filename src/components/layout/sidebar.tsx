@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils/cn";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: "📊" },
+  { name: "Insights", href: "/insights", icon: "✨" },
   { name: "Gastos", href: "/expenses", icon: "💸" },
   { name: "Importar CSV", href: "/expenses/import", icon: "📄" },
   { name: "Categorías", href: "/categories", icon: "🏷️" },
@@ -32,7 +33,7 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "focus-ring flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 isActive
                   ? "bg-zinc-100 text-zinc-900 font-medium"
                   : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import type { PieLabelRenderProps } from "recharts";
 import { formatCurrency } from "@/lib/utils/currency";
@@ -16,6 +17,18 @@ interface CategoryPieChartProps {
 }
 
 export function CategoryPieChart({ data, baseCurrency }: CategoryPieChartProps) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 640px)");
+    const update = () => setIsMobile(mediaQuery.matches);
+
+    update();
+    mediaQuery.addEventListener("change", update);
+
+    return () => mediaQuery.removeEventListener("change", update);
+  }, []);
+
   if (data.length === 0) {
     return (
       <div className="flex h-64 items-center justify-center text-sm text-zinc-400">
@@ -25,6 +38,8 @@ export function CategoryPieChart({ data, baseCurrency }: CategoryPieChartProps) 
   }
 
   const chartData = data.map((item) => ({
+    icon: item.category_icon,
+    label: item.category_name,
     name: `${item.category_icon} ${item.category_name}`,
     value: Math.round(item.total * 100) / 100,
     color: item.category_color,
@@ -35,19 +50,26 @@ export function CategoryPieChart({ data, baseCurrency }: CategoryPieChartProps) 
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
+        <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
           <Pie
             data={chartData}
             cx="50%"
             cy="50%"
             innerRadius={60}
-            outerRadius={110}
+            outerRadius={isMobile ? 92 : 110}
             paddingAngle={2}
             dataKey="value"
             nameKey="name"
             label={(props: PieLabelRenderProps) => {
+              const payload = (props.payload as Record<string, unknown>) ?? {};
+              const icon = typeof payload.icon === "string" ? payload.icon : "";
               const name = props.name ?? "";
               const pct = (props.payload as Record<string, unknown>)?.percentage;
+
+              if (isMobile) {
+                return icon;
+              }
+
               return `${name} ${typeof pct === "number" ? pct.toFixed(1) : ""}%`;
             }}
             labelLine={true}
@@ -82,9 +104,14 @@ export function CategoryPieChart({ data, baseCurrency }: CategoryPieChartProps) 
           <Legend
             verticalAlign="bottom"
             height={36}
-            formatter={(value: string) => (
-              <span className="text-xs text-zinc-700">{value}</span>
-            )}
+            formatter={(value: string, entry) => {
+              const payload = (entry?.payload as Record<string, unknown>) ?? {};
+              const icon = typeof payload.icon === "string" ? payload.icon : value;
+
+              return (
+                <span className="text-xs text-zinc-700">{isMobile ? icon : value}</span>
+              );
+            }}
           />
         </PieChart>
       </ResponsiveContainer>

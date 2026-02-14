@@ -3,6 +3,11 @@
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
+  --surface: #ffffff;
+  --surface-muted: #f1f5f9;
+  --border-subtle: #e4e4e7;
+  --shadow-soft: 0 8px 22px -14px rgba(15, 23, 42, 0.28);
+  --focus-ring: rgba(37, 99, 235, 0.34);
 }
 
 @theme inline {
@@ -17,4 +22,31 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   line-height: 1.5;
+}
+
+.surface-card {
+  background: color-mix(in oklab, var(--surface) 92%, white 8%);
+  border-color: var(--border-subtle);
+  box-shadow: var(--shadow-soft);
+}
+
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus-visible {
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 4px var(--focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
