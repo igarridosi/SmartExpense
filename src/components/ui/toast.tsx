@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, createContext, useContext } from "react";
+import { CheckCircle2, Info, X, XCircle } from "lucide-react";
 
 /**
  * Toast notification system.
@@ -69,30 +70,31 @@ function ToastItem({
   }, [onDismiss]);
 
   const styles = {
-    success: "border-green-200 bg-green-50 text-green-800",
-    error: "border-red-200 bg-red-50 text-red-800",
-    info: "border-blue-200 bg-blue-50 text-blue-800",
+    success: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    error: "border-zinc-300 bg-zinc-100 text-zinc-800",
+    info: "border-zinc-300 bg-zinc-100 text-zinc-800",
   };
 
   const icons = {
-    success: "✓",
-    error: "✗",
-    info: "ℹ",
+    success: CheckCircle2,
+    error: XCircle,
+    info: Info,
   };
+  const Icon = icons[toast.type];
 
   return (
     <div
       className={`flex items-center gap-2 rounded-lg border px-4 py-3 text-sm shadow-lg animate-in slide-in-from-right ${styles[toast.type]}`}
       role="alert"
     >
-      <span className="font-bold">{icons[toast.type]}</span>
+      <Icon className="h-4 w-4" aria-hidden="true" />
       <span>{toast.message}</span>
       <button
         onClick={onDismiss}
         className="ml-2 opacity-60 hover:opacity-100"
         aria-label="Cerrar"
       >
-        ×
+        <X className="h-4 w-4" aria-hidden="true" />
       </button>
     </div>
   );

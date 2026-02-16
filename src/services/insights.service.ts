@@ -286,7 +286,7 @@ export async function getInsightsSnapshot(
     {
       title: "Concentración por categoría",
       description: topCategory
-        ? `${topCategory.icon} ${topCategory.name} concentra ${topCategory.share.toFixed(1)}% del gasto del mes (${formatCurrency(topCategory.total, baseCurrency)}). Puede ser útil definir un límite para esta categoría.`
+        ? `${topCategory.name} concentra ${topCategory.share.toFixed(1)}% del gasto del mes (${formatCurrency(topCategory.total, baseCurrency)}). Puede ser útil definir un límite para esta categoría.`
         : "No hay una categoría dominante todavía en el importe mensual registrado.",
       severity: topCategory && topCategory.share >= 35 ? "warning" : "success",
     },
@@ -304,7 +304,7 @@ export async function getInsightsSnapshot(
     {
       title: "Ticket más alto del mes",
       description: topSingleExpenses[0]
-        ? `${topSingleExpenses[0].icon} ${topSingleExpenses[0].label} es el gasto unitario más alto del mes (${topExpenseFormatted}).`
+        ? `${topSingleExpenses[0].label} es el gasto unitario más alto del mes (${topExpenseFormatted}).`
         : "Todavía no hay suficientes gastos para identificar un ticket unitario destacado.",
       severity: "info",
     },

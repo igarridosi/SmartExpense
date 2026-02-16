@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatCurrency } from "@/lib/utils/currency";
 import { formatDate } from "@/lib/utils/date";
 import type { ExpenseWithCategory } from "@/types/expense";
+import { CategoryIcon } from "@/components/ui/category-icon";
 
 /**
  * Server Component: Shows the most recent expenses as a compact list.
@@ -21,7 +22,7 @@ export function RecentExpenses({ expenses, baseCurrency }: RecentExpensesProps) 
         </p>
         <Link
           href="/expenses"
-          className="mt-2 inline-block text-sm font-medium text-blue-600 hover:text-blue-700"
+          className="mt-2 inline-block text-sm font-medium text-zinc-700 hover:text-zinc-900"
         >
           Registrar un gasto →
         </Link>
@@ -38,11 +39,8 @@ export function RecentExpenses({ expenses, baseCurrency }: RecentExpensesProps) 
         >
           <div className="flex items-center gap-3">
             {/* Category icon */}
-            <span
-              className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
-              style={{ backgroundColor: expense.categories.color + "20" }}
-            >
-              {expense.categories.icon}
+            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-zinc-600">
+              <CategoryIcon icon={expense.categories.icon} className="h-4 w-4" />
             </span>
 
             <div>
@@ -52,7 +50,7 @@ export function RecentExpenses({ expenses, baseCurrency }: RecentExpensesProps) 
               <p className="text-xs text-zinc-500">
                 {expense.categories.name} · {formatDate(expense.expense_date)}
                 {expense.source === "csv" && (
-                  <span className="ml-1 rounded bg-blue-100 px-1 py-0.5 text-[10px] text-blue-600">
+                  <span className="ml-1 rounded bg-zinc-100 px-1 py-0.5 text-[10px] text-zinc-600">
                     CSV
                   </span>
                 )}
@@ -76,7 +74,7 @@ export function RecentExpenses({ expenses, baseCurrency }: RecentExpensesProps) 
       <div className="pt-3">
         <Link
           href="/expenses"
-          className="text-sm font-medium text-blue-600 hover:text-blue-700"
+          className="text-sm font-medium text-zinc-700 hover:text-zinc-900"
         >
           Ver todos los gastos →
         </Link>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { signUp, type AuthActionState } from "@/actions/auth.actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 
 const initialState: AuthActionState = {};
 
@@ -81,7 +81,7 @@ export default function SignupPage() {
           ¿Ya tienes cuenta?{" "}
           <Link
             href="/login"
-            className="font-medium text-blue-600 hover:text-blue-500"
+            className="font-medium text-zinc-700 hover:text-zinc-900"
           >
             Inicia sesión
           </Link>

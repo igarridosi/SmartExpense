@@ -7,6 +7,17 @@ import { parseCsv, readFileAsText, type CsvParseResult } from "@/lib/utils/csv-p
 import { importExpensesAction } from "@/actions/csv-import.actions";
 import type { CsvExpensePayload } from "@/types/csv-import";
 import type { ImportResult } from "@/types/csv-import";
+import {
+  AlertTriangle,
+  Check,
+  CircleCheck,
+  FileSpreadsheet,
+  Paperclip,
+  Trash2,
+  X,
+  XCircle,
+  type LucideIcon,
+} from "lucide-react";
 
 interface CsvImportFormProps {
   baseCurrency: string;
@@ -106,7 +117,6 @@ export function CsvImportForm({ baseCurrency }: CsvImportFormProps) {
       amount: row.amount,
       currency: row.currency,
       category: row.category,
-      description: row.description,
       defaults_applied: row.defaults_applied,
     }));
 
@@ -166,7 +176,6 @@ export function CsvImportForm({ baseCurrency }: CsvImportFormProps) {
       {phase === "results" && importResult && parseResult && (
         <ResultsPanel
           importResult={importResult}
-          discardedRows={parseResult.discardedRows}
           onDone={handleReset}
         />
       )}
@@ -231,7 +240,7 @@ function UploadZone({
       `}
       onClick={() => fileInputRef.current?.click()}
     >
-      <div className="text-5xl">📄</div>
+      <FileSpreadsheet className="h-12 w-12 text-zinc-500" aria-hidden="true" />
       <p className="text-sm font-medium text-gray-700">
         Arrastra tu archivo CSV aquí
       </p>
@@ -241,6 +250,7 @@ function UploadZone({
         type="file"
         accept=".csv"
         onChange={onFileInput}
+        aria-label="Seleccionar archivo CSV para importar"
         className="hidden"
       />
     </div>
@@ -269,7 +279,10 @@ function PreviewPanel({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-900">
-                📎 {fileName}
+                <span className="inline-flex items-center gap-1.5">
+                  <Paperclip className="h-4 w-4 text-zinc-500" aria-hidden="true" />
+                  {fileName}
+                </span>
               </p>
               <p className="mt-1 text-xs text-gray-500">
                 {totalRows} filas detectadas
@@ -337,10 +350,15 @@ function PreviewPanel({
                             className="text-amber-600"
                             title={row.defaults_applied.join(", ")}
                           >
-                            ⚠️ {row.defaults_applied.length}
+                            <span className="inline-flex items-center gap-1">
+                              <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+                              {row.defaults_applied.length}
+                            </span>
                           </span>
                         ) : (
-                          <span className="text-green-600">✓</span>
+                          <span className="inline-flex items-center text-emerald-600">
+                            <Check className="h-4 w-4" aria-hidden="true" />
+                          </span>
                         )}
                       </td>
                     </tr>
@@ -369,7 +387,9 @@ function PreviewPanel({
             <ul className="space-y-1 text-xs text-gray-600">
               {discardedRows.map((row, i) => (
                 <li key={i} className="flex gap-2">
-                  <span className="text-red-500">✗</span>
+                  <span className="text-red-500">
+                    <X className="h-3.5 w-3.5" aria-hidden="true" />
+                  </span>
                   <span>{row.discard_reason}</span>
                 </li>
               ))}
@@ -407,11 +427,9 @@ function ImportingSpinner() {
 /** Results summary after import completes */
 function ResultsPanel({
   importResult,
-  discardedRows,
   onDone,
 }: {
   importResult: ImportResult;
-  discardedRows: { discard_reason?: string }[];
   onDone: () => void;
 }) {
   const { inserted, defaulted, errors, discarded } = importResult;
@@ -427,25 +445,25 @@ function ResultsPanel({
             <ResultStat
               label="Importados"
               count={inserted}
-              icon="✅"
+              icon={CircleCheck}
               color="green"
             />
             <ResultStat
               label="Con ajustes"
               count={defaulted}
-              icon="⚠️"
+              icon={AlertTriangle}
               color="yellow"
             />
             <ResultStat
               label="Errores"
               count={errors}
-              icon="❌"
+              icon={XCircle}
               color="red"
             />
             <ResultStat
               label="Descartados"
               count={discarded}
-              icon="🗑️"
+              icon={Trash2}
               color="gray"
             />
           </div>
@@ -548,9 +566,11 @@ function ResultStat({
 }: {
   label: string;
   count: number;
-  icon: string;
+  icon: LucideIcon;
   color: "green" | "yellow" | "red" | "gray";
 }) {
+  const Icon = icon;
+
   const colors = {
     green: "bg-green-50 border-green-200",
     yellow: "bg-amber-50 border-amber-200",
@@ -562,7 +582,7 @@ function ResultStat({
     <div
       className={`flex flex-col items-center gap-1 rounded-lg border p-4 ${colors[color]}`}
     >
-      <span className="text-2xl">{icon}</span>
+      <Icon className="h-5 w-5 text-zinc-600" aria-hidden="true" />
       <span className="text-2xl font-bold">{count}</span>
       <span className="text-xs text-gray-600">{label}</span>
     </div>

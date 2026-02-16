@@ -1,6 +1,7 @@
 "use client";
 
 import { Component, type ReactNode } from "react";
+import { AlertTriangle } from "lucide-react";
 
 /**
  * Error Boundary — catches rendering errors in child components.
@@ -37,19 +38,19 @@ export class ErrorBoundary extends Component<
       }
 
       return (
-        <div className="flex flex-col items-center gap-4 rounded-xl border border-red-200 bg-red-50 p-8 text-center">
-          <span className="text-3xl">⚠️</span>
+        <div className="flex flex-col items-center gap-4 rounded-xl border border-zinc-200 bg-zinc-50 p-8 text-center">
+          <AlertTriangle className="h-8 w-8 text-amber-500" aria-hidden="true" />
           <div>
-            <h3 className="text-lg font-semibold text-red-800">
+            <h3 className="text-lg font-semibold text-zinc-900">
               Algo salió mal
             </h3>
-            <p className="mt-1 text-sm text-red-600">
+            <p className="mt-1 text-sm text-zinc-600">
               {this.state.error?.message || "Error inesperado"}
             </p>
           </div>
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
-            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
           >
             Reintentar
           </button>

@@ -10,6 +10,9 @@ import { formatCurrency } from "@/lib/utils/currency";
 import { formatDate } from "@/lib/utils/date";
 import type { ExpenseWithCategory, PaginatedExpenses } from "@/types/expense";
 import type { Category } from "@/types/category";
+import { Pencil, Trash2 } from "lucide-react";
+import { CategoryIcon } from "@/components/ui/category-icon";
+import { OverflowMenu } from "@/components/ui/overflow-menu";
 
 interface ExpenseListProps {
   expenses: PaginatedExpenses;
@@ -40,7 +43,6 @@ export function ExpenseList({
 
   return (
     <div className="space-y-4">
-      {/* Expense cards */}
       <div className="space-y-3">
         {expenses.data.map((expense) => (
           <ExpenseCard
@@ -55,7 +57,6 @@ export function ExpenseList({
         ))}
       </div>
 
-      {/* Pagination */}
       {expenses.totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
           {expenses.page > 1 && (
@@ -135,73 +136,61 @@ function ExpenseCard({
   return (
     <Card className="p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex min-w-0 flex-1 items-center gap-4">
-        {/* Category icon */}
-        <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xl"
-          style={{
-            backgroundColor: `${expense.categories.color}20`,
-          }}
-        >
-          {expense.categories.icon}
-        </div>
+        <div className="flex min-w-0 flex-1 items-center gap-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-100 text-zinc-600">
+            <CategoryIcon icon={expense.categories.icon} className="h-5 w-5" />
+          </div>
 
-        {/* Details */}
-        <div className="min-w-0">
-          <p className="truncate font-medium text-gray-900">
-            {expense.description || expense.categories.name}
-          </p>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <span>{expense.categories.name}</span>
-            <span>·</span>
-            <span>{formatDate(expense.expense_date)}</span>
-            {expense.source === "csv" && (
-              <>
-                <span>·</span>
-                <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium uppercase">
-                  CSV
-                </span>
-              </>
-            )}
+          <div className="min-w-0">
+            <p className="truncate font-medium text-gray-900">
+              {expense.description || expense.categories.name}
+            </p>
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <span>{expense.categories.name}</span>
+              <span>·</span>
+              <span>{formatDate(expense.expense_date)}</span>
+              {expense.source === "csv" && (
+                <>
+                  <span>·</span>
+                  <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium uppercase">
+                    CSV
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Amount + actions */}
-      <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
-        <div className="text-right">
-          <p className="font-semibold text-gray-900">
-            {formatCurrency(expense.amount, expense.currency)}
-          </p>
-          {expense.currency !== baseCurrency && (
-            <p className="text-xs text-gray-400">
-              ≈ {formatCurrency(expense.amount_in_base, baseCurrency)}
+        <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
+          <div className="text-right">
+            <p className="font-semibold text-gray-900">
+              {formatCurrency(expense.amount, expense.currency)}
             </p>
-          )}
-        </div>
+            {expense.currency !== baseCurrency && (
+              <p className="text-xs text-gray-400">
+                ≈ {formatCurrency(expense.amount_in_base, baseCurrency)}
+              </p>
+            )}
+          </div>
 
-        <div className="flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onEdit}
-            className="h-8 w-8 p-0 text-base"
-            aria-label="Editar gasto"
-          >
-            ✏️
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDelete}
-            isLoading={isDeleting}
-            className="h-8 w-8 p-0 text-base"
-            aria-label="Eliminar gasto"
-          >
-            🗑️
-          </Button>
+          <OverflowMenu
+            ariaLabel="Acciones del gasto"
+            actions={[
+              {
+                label: "Editar",
+                icon: Pencil,
+                onClick: onEdit,
+                disabled: isDeleting,
+              },
+              {
+                label: "Eliminar",
+                icon: Trash2,
+                onClick: handleDelete,
+                disabled: isDeleting,
+              },
+            ]}
+          />
         </div>
-      </div>
       </div>
 
       {deleteError && (

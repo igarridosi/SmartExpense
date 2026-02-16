@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { formatCurrency } from "@/lib/utils/currency";
+import { CategoryIcon } from "@/components/ui/category-icon";
 import type { CategorySpending } from "@/services/dashboard.service";
 
 /**
@@ -16,12 +17,12 @@ interface CategoryPieChartProps {
 }
 
 export function CategoryPieChart({ data, baseCurrency }: CategoryPieChartProps) {
-  const [isClient, setIsClient] = useState(false);
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   if (data.length === 0) {
     return (
@@ -33,7 +34,7 @@ export function CategoryPieChart({ data, baseCurrency }: CategoryPieChartProps) 
 
   const chartData = data.map((item) => ({
     icon: item.category_icon,
-    name: `${item.category_icon} ${item.category_name}`,
+    name: item.category_name,
     categoryName: item.category_name,
     value: Math.round(item.total * 100) / 100,
     color: item.category_color,
@@ -42,6 +43,10 @@ export function CategoryPieChart({ data, baseCurrency }: CategoryPieChartProps) 
   }));
 
   const topCategory = chartData[0];
+  const safeActiveCategoryIndex = Math.min(
+    activeCategoryIndex,
+    Math.max(chartData.length - 1, 0)
+  );
   const secondCategory = chartData[1];
   const topCategoryAvg = topCategory ? topCategory.value / topCategory.count : 0;
   const leadGapShare = topCategory && secondCategory
@@ -53,10 +58,6 @@ export function CategoryPieChart({ data, baseCurrency }: CategoryPieChartProps) 
   const leadGapRelativePercent = secondCategory && secondCategory.percentage > 0
     ? (leadGapShare / secondCategory.percentage) * 100
     : 0;
-
-  useEffect(() => {
-    setActiveCategoryIndex(0);
-  }, [data]);
 
   return (
     <div className="space-y-3">
@@ -96,14 +97,20 @@ export function CategoryPieChart({ data, baseCurrency }: CategoryPieChartProps) 
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="rounded-2xl border border-zinc-200 bg-white/95 px-4 py-3 text-center shadow-sm">
               <p className="text-xs uppercase tracking-wide text-zinc-500">Categoría</p>
-              <p className="max-w-[170px] truncate text-base font-semibold text-zinc-900">
-                {chartData[activeCategoryIndex]
-                  ? `${chartData[activeCategoryIndex].icon} ${chartData[activeCategoryIndex].categoryName}`
-                  : "Sin datos"}
-              </p>
+              {chartData[safeActiveCategoryIndex] ? (
+                <div className="mx-auto flex max-w-[170px] items-center justify-center gap-1 text-base font-semibold text-zinc-900">
+                  <span className="truncate">{chartData[safeActiveCategoryIndex].categoryName}</span>
+                  <CategoryIcon
+                    icon={chartData[safeActiveCategoryIndex].icon}
+                    className="h-4 w-4 shrink-0"
+                  />
+                </div>
+              ) : (
+                <p className="max-w-[170px] truncate text-base font-semibold text-zinc-900">Sin datos</p>
+              )}
               <p className="text-xs text-zinc-600">
-                {chartData[activeCategoryIndex]
-                  ? `${chartData[activeCategoryIndex].percentage.toFixed(1)}%`
+                {chartData[safeActiveCategoryIndex]
+                  ? `${chartData[safeActiveCategoryIndex].percentage.toFixed(1)}%`
                   : "0%"}
               </p>
             </div>
@@ -118,9 +125,14 @@ export function CategoryPieChart({ data, baseCurrency }: CategoryPieChartProps) 
       <div className="grid gap-2 sm:grid-cols-3">
         <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
           <p className="text-xs text-zinc-500">Categoría líder</p>
-          <p className="mt-1 truncate text-sm font-semibold text-zinc-900">
-            {topCategory ? `${topCategory.icon} ${topCategory.categoryName}` : "Sin datos"}
-          </p>
+          {topCategory ? (
+            <div className="mt-1 flex items-center gap-1 text-sm font-semibold text-zinc-900">
+              <span className="truncate">{topCategory.categoryName}</span>
+              <CategoryIcon icon={topCategory.icon} className="h-4 w-4 shrink-0" />
+            </div>
+          ) : (
+            <p className="mt-1 truncate text-sm font-semibold text-zinc-900">Sin datos</p>
+          )}
           <p className="text-xs text-zinc-600">
             {topCategory
               ? `${formatCurrency(topCategory.value, baseCurrency)} · ${topCategory.percentage.toFixed(1)}%`
@@ -153,9 +165,12 @@ export function CategoryPieChart({ data, baseCurrency }: CategoryPieChartProps) 
         {chartData.slice(0, 6).map((category, index) => (
           <div key={category.name} className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
             <div className="flex items-center justify-between gap-3 text-xs text-zinc-700">
-              <p className="truncate font-medium">
-                {index + 1}. {category.icon} {category.categoryName}
-              </p>
+              <div className="flex min-w-0 items-center gap-1 font-medium">
+                <p className="truncate">
+                  {index + 1}. {category.categoryName}
+                </p>
+                <CategoryIcon icon={category.icon} className="h-3.5 w-3.5 shrink-0" />
+              </div>
               <p className="shrink-0 font-semibold">{category.percentage.toFixed(1)}%</p>
             </div>
             <p className="mt-1 text-[11px] text-zinc-500">

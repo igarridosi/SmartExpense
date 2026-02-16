@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { AuthButton } from "./auth-button";
 import { MobileNav } from "./mobile-nav";
+import { Wallet } from "lucide-react";
 
 export async function Topbar() {
   const supabase = await createClient();
@@ -16,7 +17,7 @@ export async function Topbar() {
       {/* Mobile: hamburger + logo */}
       <div className="flex items-center gap-2 lg:hidden">
         <MobileNav />
-        <span className="text-xl">💰</span>
+        <Wallet className="h-5 w-5 text-zinc-500" aria-hidden="true" />
         <span className="text-lg font-bold text-zinc-900">SmartExpense</span>
       </div>
 

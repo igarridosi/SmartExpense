@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import {
   Area,
   AreaChart,
@@ -16,6 +16,7 @@ import {
   YAxis,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CategoryIcon } from "@/components/ui/category-icon";
 import { formatCurrency } from "@/lib/utils/currency";
 import type { InsightsSnapshot } from "@/services/insights.service";
 
@@ -26,9 +27,17 @@ interface InsightsPanelProps {
   year: number;
 }
 
+function ChartFallback({ message }: { message: string }) {
+  return (
+    <div className="flex h-72 items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50">
+      <p className="max-w-xs text-center text-sm text-zinc-500">{message}</p>
+    </div>
+  );
+}
+
 function SeverityBadge({ severity }: { severity: "info" | "success" | "warning" }) {
   const styles: Record<typeof severity, string> = {
-    info: "bg-blue-100 text-blue-700",
+    info: "bg-zinc-100 text-zinc-700",
     success: "bg-emerald-100 text-emerald-700",
     warning: "bg-amber-100 text-amber-700",
   };
@@ -49,8 +58,16 @@ function SeverityBadge({ severity }: { severity: "info" | "success" | "warning" 
 }
 
 export function InsightsPanel({ snapshot, baseCurrency, monthLabel, year }: InsightsPanelProps) {
-  const [isClient, setIsClient] = useState(false);
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
+  const safeActiveCategoryIndex = Math.min(
+    activeCategoryIndex,
+    Math.max(snapshot.topCategories.length - 1, 0)
+  );
   const hasDailyTrend = snapshot.dailyTrend.some((item) => item.total > 0);
   const trendPeak = snapshot.monthlyTrend.reduce(
     (acc, item) => (item.total > acc.total ? item : acc),
@@ -74,22 +91,6 @@ export function InsightsPanel({ snapshot, baseCurrency, monthLabel, year }: Insi
           previousToLatestMonth.total) *
         100
       : 0;
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    setActiveCategoryIndex(0);
-  }, [snapshot.topCategories]);
-
-  function ChartFallback({ message }: { message: string }) {
-    return (
-      <div className="flex h-72 items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50">
-        <p className="max-w-xs text-center text-sm text-zinc-500">{message}</p>
-      </div>
-    );
-  }
 
   return (
     <section className="space-y-4" aria-label="Panel de insights accionables">
@@ -279,14 +280,22 @@ export function InsightsPanel({ snapshot, baseCurrency, monthLabel, year }: Insi
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                   <div className="rounded-2xl border border-zinc-200 bg-white/95 px-2 py-2 text-center shadow-sm">
                     <p className="text-xs uppercase tracking-wide text-zinc-500">Categoría</p>
-                    <p className="max-w-[125px] truncate text-xs font-semibold text-zinc-900">
-                      {snapshot.topCategories[activeCategoryIndex]
-                        ? `${snapshot.topCategories[activeCategoryIndex].icon} ${snapshot.topCategories[activeCategoryIndex].name}`
-                        : "Sin datos"}
-                    </p>
+                    {snapshot.topCategories[safeActiveCategoryIndex] ? (
+                      <div className="mx-auto flex max-w-[125px] items-center justify-center gap-1 text-xs font-semibold text-zinc-900">
+                        <span className="truncate">
+                          {snapshot.topCategories[safeActiveCategoryIndex].name}
+                        </span>
+                        <CategoryIcon
+                          icon={snapshot.topCategories[safeActiveCategoryIndex].icon}
+                          className="h-3.5 w-3.5 shrink-0"
+                        />
+                      </div>
+                    ) : (
+                      <p className="max-w-[125px] truncate text-xs font-semibold text-zinc-900">Sin datos</p>
+                    )}
                     <p className="text-[11px] text-zinc-600">
-                      {snapshot.topCategories[activeCategoryIndex]
-                        ? `${snapshot.topCategories[activeCategoryIndex].share.toFixed(1)}%`
+                      {snapshot.topCategories[safeActiveCategoryIndex]
+                        ? `${snapshot.topCategories[safeActiveCategoryIndex].share.toFixed(1)}%`
                         : "0%"}
                     </p>
                   </div>
@@ -298,8 +307,13 @@ export function InsightsPanel({ snapshot, baseCurrency, monthLabel, year }: Insi
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {snapshot.topCategories.slice(0, 4).map((category) => (
                 <div key={category.name} className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
-                  <span className="font-medium">{category.icon} {category.name}</span>
-                  <span className="ml-2">{category.share.toFixed(1)}%</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-1">
+                      <span className="truncate font-medium">{category.name}</span>
+                      <CategoryIcon icon={category.icon} className="h-3.5 w-3.5 shrink-0" />
+                    </div>
+                    <span className="shrink-0">{category.share.toFixed(1)}%</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -396,9 +410,10 @@ export function InsightsPanel({ snapshot, baseCurrency, monthLabel, year }: Insi
                 snapshot.topSingleExpenses.map((expense) => (
                   <div key={`${expense.date}-${expense.label}`} className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="truncate text-sm font-medium text-zinc-900">
-                        {expense.icon} {expense.label}
-                      </p>
+                      <div className="flex min-w-0 items-center gap-1 text-sm font-medium text-zinc-900">
+                        <span className="truncate">{expense.label}</span>
+                        <CategoryIcon icon={expense.icon} className="h-4 w-4 shrink-0" />
+                      </div>
                       <p className="shrink-0 text-sm font-semibold text-zinc-900">
                         {formatCurrency(expense.amount, baseCurrency)}
                       </p>

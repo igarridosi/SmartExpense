@@ -9,17 +9,31 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { Category } from "@/types/category";
+import { CategoryIcon } from "@/components/ui/category-icon";
 
-const EMOJI_OPTIONS = [
-  "🍔", "🚗", "🏠", "🎬", "💊", "📚", "💡", "📦",
-  "🛒", "✈️", "🎮", "👕", "🐾", "🎁", "💼", "🏋️",
+const ICON_OPTIONS = [
+  "utensils", "car", "home", "movie", "health", "education", "utilities", "package",
+  "shopping", "travel", "gaming", "clothing", "pets", "gifts", "work", "fitness",
 ];
 
 const COLOR_OPTIONS = [
-  "#EF4444", "#F59E0B", "#3B82F6", "#8B5CF6",
-  "#10B981", "#6366F1", "#F97316", "#6B7280",
-  "#EC4899", "#14B8A6", "#84CC16", "#F43F5E",
+  { value: "#EF4444", swatchClass: "bg-red-500" },
+  { value: "#F59E0B", swatchClass: "bg-amber-500" },
+  { value: "#3B82F6", swatchClass: "bg-blue-500" },
+  { value: "#8B5CF6", swatchClass: "bg-violet-500" },
+  { value: "#10B981", swatchClass: "bg-emerald-500" },
+  { value: "#6366F1", swatchClass: "bg-indigo-500" },
+  { value: "#F97316", swatchClass: "bg-orange-500" },
+  { value: "#6B7280", swatchClass: "bg-zinc-500" },
+  { value: "#EC4899", swatchClass: "bg-pink-500" },
+  { value: "#14B8A6", swatchClass: "bg-teal-500" },
+  { value: "#84CC16", swatchClass: "bg-lime-500" },
+  { value: "#F43F5E", swatchClass: "bg-rose-500" },
 ];
+
+function normalizeHexColor(value: string): string {
+  return value.trim().toUpperCase();
+}
 
 interface CategoryFormProps {
   /** If provided, we're editing; otherwise creating */
@@ -34,9 +48,11 @@ export function CategoryForm({ category, onDone }: CategoryFormProps) {
   const isEditing = !!category;
   const action = isEditing ? updateCategoryAction : createCategoryAction;
   const [state, formAction, isPending] = useActionState(action, initialState);
-  const [selectedEmoji, setSelectedEmoji] = useState(category?.icon ?? "📦");
-  const [selectedColor, setSelectedColor] = useState(category?.color ?? "#6B7280");
-  const [customEmoji, setCustomEmoji] = useState("");
+  const [selectedIcon, setSelectedIcon] = useState(category?.icon ?? "package");
+  const [selectedColor, setSelectedColor] = useState(
+    normalizeHexColor(category?.color ?? "#6B7280")
+  );
+  const [showCustomColorPicker, setShowCustomColorPicker] = useState(false);
 
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -44,12 +60,9 @@ export function CategoryForm({ category, onDone }: CategoryFormProps) {
   useEffect(() => {
     if (state.success) {
       formRef.current?.reset();
-      setSelectedEmoji(category?.icon ?? "📦");
-      setSelectedColor(category?.color ?? "#6B7280");
-      setCustomEmoji("");
       onDone?.();
     }
-  }, [state.success, onDone, category?.icon, category?.color]);
+  }, [state.success, onDone]);
 
   return (
     <form ref={formRef} action={formAction} className="space-y-4">
@@ -72,53 +85,25 @@ export function CategoryForm({ category, onDone }: CategoryFormProps) {
         error={state.fieldErrors?.name?.[0]}
       />
 
-      {/* Emoji picker */}
+      {/* Icon picker */}
       <div className="space-y-1">
         <label className="block text-sm font-medium text-gray-700">
           Ícono
         </label>
-        <input type="hidden" name="icon" value={selectedEmoji} />
+        <input type="hidden" name="icon" value={selectedIcon} />
 
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-          <label htmlFor="custom-emoji" className="mb-2 block text-xs font-medium text-gray-600">
-            Emoji personalizado
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              id="custom-emoji"
-              type="text"
-              value={customEmoji}
-              onChange={(event) => {
-                const value = event.target.value;
-                setCustomEmoji(value);
-                if (value.trim()) {
-                  setSelectedEmoji(value.trim().slice(0, 10));
-                }
-              }}
-              placeholder="😎"
-              maxLength={10}
-              className="w-24 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-center text-lg focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            />
-            <p className="text-xs text-gray-500">
-              Escribe cualquier emoji o símbolo (ej: 🧠, 🐶, 🎧)
-            </p>
-          </div>
-        </div>
-
-        <p className="text-xs font-medium text-gray-600">O usa uno rápido:</p>
+        <p className="text-xs font-medium text-gray-600">Selecciona un icono:</p>
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Seleccionar ícono">
-          {EMOJI_OPTIONS.map((emoji) => (
+          {ICON_OPTIONS.map((icon) => (
             <button
-              key={emoji}
+              key={icon}
               type="button"
-              className="rounded-lg border border-gray-200 p-2 text-xl transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 data-[selected=true]:border-blue-500 data-[selected=true]:bg-blue-50"
-              data-selected={selectedEmoji === emoji ? "true" : undefined}
-              onClick={() => {
-                setSelectedEmoji(emoji);
-                setCustomEmoji("");
-              }}
+              className="rounded-lg border border-zinc-200 bg-zinc-50 p-2 text-zinc-600 transition-colors hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 data-[selected=true]:border-zinc-500 data-[selected=true]:bg-zinc-100"
+              data-selected={selectedIcon === icon ? "true" : undefined}
+              onClick={() => setSelectedIcon(icon)}
+              aria-label={`Icono ${icon}`}
             >
-              {emoji}
+              <CategoryIcon icon={icon} className="h-5 w-5" />
             </button>
           ))}
         </div>
@@ -134,18 +119,49 @@ export function CategoryForm({ category, onDone }: CategoryFormProps) {
         </label>
         <input type="hidden" name="color" value={selectedColor} />
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Seleccionar color">
-          {COLOR_OPTIONS.map((color) => (
+          {COLOR_OPTIONS.map((option) => (
             <button
-              key={color}
+              key={option.value}
               type="button"
-              className="h-8 w-8 rounded-full border-2 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500/20 data-[selected=true]:ring-2 data-[selected=true]:ring-offset-2 data-[selected=true]:ring-blue-500"
-              style={{ backgroundColor: color }}
-              data-selected={selectedColor === color ? "true" : undefined}
-              onClick={() => setSelectedColor(color)}
-              aria-label={`Color ${color}`}
+              className={`h-8 w-8 rounded-full border-2 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 data-[selected=true]:ring-2 data-[selected=true]:ring-offset-2 data-[selected=true]:ring-zinc-500 ${option.swatchClass}`}
+              data-selected={selectedColor === normalizeHexColor(option.value) ? "true" : undefined}
+              onClick={() => setSelectedColor(normalizeHexColor(option.value))}
+              aria-label={`Color ${option.value}`}
             />
           ))}
+          <div>
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-8 px-2 font-bold text-xs"
+              onClick={() => setShowCustomColorPicker((prev) => !prev)}
+              aria-expanded={showCustomColorPicker ? "true" : "false"}
+              aria-controls="custom-color-picker"
+            >
+              {showCustomColorPicker ? "Ocultar selector personalizado" : "Elegir color personalizado"}
+            </Button>
+          </div>
         </div>
+
+        {showCustomColorPicker && (
+          <div id="custom-color-picker" className="flex items-center gap-3 rounded-lg border mt-4 border-zinc-200 bg-zinc-50 px-3 py-2">
+            <label htmlFor="custom-color-input" className="text-xs font-medium text-zinc-700">
+              Color personalizado
+            </label>
+            <input
+              id="custom-color-input"
+              type="color"
+              value={selectedColor}
+              onChange={(event) =>
+                setSelectedColor(normalizeHexColor(event.target.value))
+              }
+              className="h-8 w-10 cursor-pointer rounded border border-zinc-300 bg-white"
+              aria-label="Selector de color personalizado"
+            />
+            <span className="text-xs font-medium text-zinc-600">{selectedColor}</span>
+          </div>
+        )}
+
         {state.fieldErrors?.color && (
           <p className="text-xs text-red-600">{state.fieldErrors.color[0]}</p>
         )}
