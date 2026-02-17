@@ -4,6 +4,14 @@ on:
   pull_request:
     branches:
       - "**"
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-pr-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
@@ -32,7 +40,11 @@ jobs:
         run: npm run build-storybook
 
       - name: Publish to Chromatic
-        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
         env:
           CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
-        run: npx chromatic --project-token=${CHROMATIC_PROJECT_TOKEN} --exit-zero-on-changes
+        run: |
+          if [ -z "$CHROMATIC_PROJECT_TOKEN" ]; then
+            echo "CHROMATIC_PROJECT_TOKEN no configurado. Se omite Chromatic."
+            exit 0
+          fi
+          npx chromatic --project-token="$CHROMATIC_PROJECT_TOKEN" --exit-zero-on-changes
