@@ -52,7 +52,25 @@ export interface TopExpenseInsightPoint {
 export interface ActionableInsight {
   title: string;
   description: string;
+  whyItMatters: string;
+  recommendedAction: string;
+  impactEstimate: string;
   severity: "info" | "success" | "warning";
+}
+
+export interface FinancialHealthPillar {
+  key: "stability" | "concentration" | "consistency" | "control";
+  label: string;
+  score: number;
+  weight: number;
+  explanation: string;
+}
+
+export interface FinancialHealthSnapshot {
+  score: number;
+  label: "Sólida" | "Estable" | "En riesgo";
+  summary: string;
+  pillars: FinancialHealthPillar[];
 }
 
 export interface InsightsSnapshot {
@@ -66,6 +84,7 @@ export interface InsightsSnapshot {
   weekdayTrend: WeekdayInsightPoint[];
   dailyTrend: DailyTrendPoint[];
   topSingleExpenses: TopExpenseInsightPoint[];
+  financialHealth: FinancialHealthSnapshot;
   actionableIdeas: ActionableInsight[];
 }
 
@@ -90,6 +109,11 @@ function getMonthLabel(date: Date): string {
 function clampPct(value: number): number {
   if (Number.isNaN(value) || !Number.isFinite(value)) return 0;
   return Math.max(-100, Math.min(999, value));
+}
+
+function clampScore(value: number): number {
+  if (Number.isNaN(value) || !Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(100, value));
 }
 
 /**
@@ -259,9 +283,70 @@ export async function getInsightsSnapshot(
   const weekendTotal = weekdayTrend
     .filter((d) => d.day === "Sáb" || d.day === "Dom")
     .reduce((sum, d) => sum + d.total, 0);
+  const weekendShare =
+    currentMonthTotal > 0 ? (weekendTotal / currentMonthTotal) * 100 : 0;
   const weekdayTotal = Math.max(0, currentMonthTotal - weekendTotal);
   const activeDays = new Set(currentMonthRows.map((row) => row.expense_date)).size;
   const avgPerActiveDay = activeDays > 0 ? currentMonthTotal / activeDays : 0;
+
+  const elapsedDaysInMonth =
+    today.getFullYear() === year && today.getMonth() + 1 === month
+      ? Math.max(1, today.getDate())
+      : daysInSelectedMonth;
+  const activeDayRatio = activeDays / elapsedDaysInMonth;
+
+  const stabilityScore = clampScore(100 - Math.min(100, Math.abs(variationVsLastMonth) * 1.25));
+  const concentrationScore = clampScore(
+    topCategory ? 100 - Math.max(0, (topCategory.share - 25) * 2.8) : 70
+  );
+  const consistencyScore = clampScore(activeDayRatio * 100);
+  const controlScore = clampScore(100 - Math.max(0, (weekendShare - 35) * 2));
+
+  const financialHealthPillars: FinancialHealthPillar[] = [
+    {
+      key: "stability",
+      label: "Estabilidad mensual",
+      score: Math.round(stabilityScore),
+      weight: 0.3,
+      explanation: `Mide cuánto varía tu gasto frente al mes anterior (${variationVsLastMonth >= 0 ? "+" : ""}${variationVsLastMonth.toFixed(1)}%).`,
+    },
+    {
+      key: "concentration",
+      label: "Diversificación por categoría",
+      score: Math.round(concentrationScore),
+      weight: 0.25,
+      explanation: topCategory
+        ? `${topCategory.name} concentra ${topCategory.share.toFixed(1)}% del gasto mensual.`
+        : "No hay concentración relevante por categoría todavía.",
+    },
+    {
+      key: "consistency",
+      label: "Consistencia de registro",
+      score: Math.round(consistencyScore),
+      weight: 0.2,
+      explanation: `Registraste gastos en ${activeDays} de ${elapsedDaysInMonth} días observados del mes.`,
+    },
+    {
+      key: "control",
+      label: "Control del patrón semanal",
+      score: Math.round(controlScore),
+      weight: 0.25,
+      explanation: `El gasto de fin de semana representa ${weekendShare.toFixed(1)}% del total del mes.`,
+    },
+  ];
+
+  const financialHealthScore = Math.round(
+    financialHealthPillars.reduce((acc, pillar) => acc + pillar.score * pillar.weight, 0)
+  );
+  const financialHealthLabel: FinancialHealthSnapshot["label"] =
+    financialHealthScore >= 75 ? "Sólida" : financialHealthScore >= 55 ? "Estable" : "En riesgo";
+
+  const financialHealthSummary =
+    financialHealthLabel === "Sólida"
+      ? "Tu patrón de gasto luce controlado y consistente en el periodo analizado."
+      : financialHealthLabel === "Estable"
+        ? "Hay una base razonable, pero aún existen focos claros de mejora en hábitos y concentración."
+        : "Se detecta volatilidad relevante o concentración alta; conviene ajustar límites y seguimiento semanal.";
 
   const hasActionableInsights =
     currentMonthRows.length >= 8 && activeDays >= 4 && topCategories.length >= 2;
@@ -281,6 +366,14 @@ export async function getInsightsSnapshot(
         currentMonthTotal > 0
           ? `Si mantienes este ritmo, el mes cerraría en ~${projectedMonthTotalFormatted} (importe total estimado del mes).`
           : "Aún no hay suficientes importes registrados este mes para proyectar un cierre fiable.",
+      whyItMatters:
+        "La proyección anticipa desviaciones antes de finalizar el mes y te permite reaccionar a tiempo.",
+      recommendedAction:
+        "Define un tope semanal y revisa el acumulado cada 3-4 días para corregir tendencia.",
+      impactEstimate:
+        currentMonthTotal > 0
+          ? `Reduciendo un 5% del ritmo actual, el cierre bajaría aprox. ${formatCurrency(projectedMonthTotal * 0.05, baseCurrency)}.`
+          : "Sin datos suficientes para estimar impacto.",
       severity: currentMonthTotal > 0 ? "info" : "warning",
     },
     {
@@ -288,6 +381,15 @@ export async function getInsightsSnapshot(
       description: topCategory
         ? `${topCategory.name} concentra ${topCategory.share.toFixed(1)}% del gasto del mes (${formatCurrency(topCategory.total, baseCurrency)}). Puede ser útil definir un límite para esta categoría.`
         : "No hay una categoría dominante todavía en el importe mensual registrado.",
+      whyItMatters:
+        "Una concentración alta en una sola categoría incrementa el riesgo de desviaciones difíciles de compensar.",
+      recommendedAction:
+        topCategory
+          ? `Configura un presupuesto específico para ${topCategory.name} y monitorea alertas al 80% de uso.`
+          : "Mantén límites simples por categoría para evitar concentración temprana.",
+      impactEstimate: topCategory
+        ? `Si reduces ${topCategory.name} un 10%, ahorrarías ${formatCurrency(topCategory.total * 0.1, baseCurrency)} al mes.`
+        : "Sin categoría dominante no hay impacto principal estimado.",
       severity: topCategory && topCategory.share >= 35 ? "warning" : "success",
     },
     {
@@ -296,6 +398,14 @@ export async function getInsightsSnapshot(
         currentMonthTotal > 0
           ? `El ${((weekendTotal / currentMonthTotal) * 100).toFixed(1)}% del gasto se registra en fin de semana. Importe comparado: laborables ${weekdayTotalFormatted} vs fin de semana ${weekendTotalFormatted}.`
           : "No hay suficiente actividad registrada para detectar un patrón semanal fiable.",
+      whyItMatters:
+        "Los picos de fin de semana suelen acumular compras discrecionales y elevar el gasto mensual sin percepción inmediata.",
+      recommendedAction:
+        "Establece un presupuesto fijo para sábado/domingo y registra cada consumo el mismo día.",
+      impactEstimate:
+        currentMonthTotal > 0
+          ? `Bajar 15% el gasto de fin de semana libera ${formatCurrency(weekendTotal * 0.15, baseCurrency)} por mes.`
+          : "Sin datos suficientes para estimar impacto.",
       severity:
         currentMonthTotal > 0 && weekendTotal > weekdayTotal * 0.45
           ? "warning"
@@ -306,6 +416,13 @@ export async function getInsightsSnapshot(
       description: topSingleExpenses[0]
         ? `${topSingleExpenses[0].label} es el gasto unitario más alto del mes (${topExpenseFormatted}).`
         : "Todavía no hay suficientes gastos para identificar un ticket unitario destacado.",
+      whyItMatters:
+        "Un ticket alto puede representar una compra puntual válida o una fuga que conviene revisar para evitar recurrencia.",
+      recommendedAction:
+        "Clasifica este gasto como excepcional o recurrente y define regla para futuros consumos similares.",
+      impactEstimate: topSingleExpenses[0]
+        ? `Evitar 1 ticket similar el próximo mes podría ahorrar ${formatCurrency(topSingleExpenses[0].amount, baseCurrency)}.`
+        : "Sin tickets destacados para estimar impacto.",
       severity: "info",
     },
     {
@@ -314,6 +431,14 @@ export async function getInsightsSnapshot(
         activeDays > 0
           ? `Has registrado gastos en ${activeDays} días del mes, con un promedio de ${avgPerActiveDayFormatted} por día activo.`
           : "Empieza registrando algunos gastos para obtener métricas de hábito y tendencias más útiles.",
+      whyItMatters:
+        "La consistencia de registro mejora la calidad del análisis y reduce decisiones basadas en datos incompletos.",
+      recommendedAction:
+        "Define un recordatorio diario breve para registrar gastos y revisar categorías antes de cerrar el día.",
+      impactEstimate:
+        activeDays > 0
+          ? `Aumentar la consistencia de registro ayuda a detectar fugas tempranas del orden de ${formatCurrency(avgPerActiveDay * 0.1, baseCurrency)} por día activo.`
+          : "Sin actividad suficiente para estimar impacto.",
       severity: activeDays >= 10 ? "success" : "info",
     },
   ];
@@ -329,6 +454,12 @@ export async function getInsightsSnapshot(
     weekdayTrend,
     dailyTrend,
     topSingleExpenses,
+    financialHealth: {
+      score: financialHealthScore,
+      label: financialHealthLabel,
+      summary: financialHealthSummary,
+      pillars: financialHealthPillars,
+    },
     actionableIdeas: hasActionableInsights ? actionableIdeas : [],
   };
 }

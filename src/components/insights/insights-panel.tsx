@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import {
   Area,
   AreaChart,
@@ -16,9 +16,21 @@ import {
   YAxis,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { CategoryIcon } from "@/components/ui/category-icon";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/utils/currency";
+import { trackEvent } from "@/lib/analytics/track";
 import type { InsightsSnapshot } from "@/services/insights.service";
+
+const INSIGHTS_SIMULATOR_STORAGE_KEY = "smart-expense:insights-simulator:v1";
+
+interface PersistedSimulatorState {
+  categoryName: string;
+  reductionPct: number;
+  monthlySavingsGoal: number;
+}
 
 interface InsightsPanelProps {
   snapshot: InsightsSnapshot;
@@ -43,8 +55,8 @@ function SeverityBadge({ severity }: { severity: "info" | "success" | "warning" 
   };
 
   const labels: Record<typeof severity, string> = {
-    info: "Insight",
-    success: "OK",
+    info: "Dato clave",
+    success: "Favorable",
     warning: "Atención",
   };
 
@@ -64,6 +76,133 @@ export function InsightsPanel({ snapshot, baseCurrency, monthLabel, year }: Insi
     () => false
   );
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
+  const [selectedCategoryName, setSelectedCategoryName] = useState(
+    snapshot.topCategories[0]?.name ?? ""
+  );
+  const [reductionPct, setReductionPct] = useState(10);
+  const [expandedIdeaIndex, setExpandedIdeaIndex] = useState<number | null>(0);
+  const [monthlySavingsGoal, setMonthlySavingsGoal] = useState(
+    Math.round(snapshot.currentMonthTotal * 0.1 * 100) / 100
+  );
+
+  useEffect(() => {
+    const defaultCategoryName = snapshot.topCategories[0]?.name ?? "";
+    const defaultMonthlyGoal = Math.round(snapshot.currentMonthTotal * 0.1 * 100) / 100;
+    let nextCategoryName = defaultCategoryName;
+    let nextReductionPct = 10;
+    let nextMonthlyGoal = defaultMonthlyGoal;
+
+    try {
+      const raw = window.localStorage.getItem(INSIGHTS_SIMULATOR_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<PersistedSimulatorState>;
+        const hasCategory =
+          typeof parsed.categoryName === "string" &&
+          snapshot.topCategories.some((category) => category.name === parsed.categoryName);
+
+        nextCategoryName = hasCategory ? parsed.categoryName! : defaultCategoryName;
+        nextReductionPct =
+          typeof parsed.reductionPct === "number"
+            ? Math.min(80, Math.max(1, parsed.reductionPct))
+            : 10;
+        nextMonthlyGoal =
+          typeof parsed.monthlySavingsGoal === "number" && parsed.monthlySavingsGoal >= 0
+            ? parsed.monthlySavingsGoal
+            : defaultMonthlyGoal;
+      }
+    } catch {
+      nextCategoryName = defaultCategoryName;
+      nextReductionPct = 10;
+      nextMonthlyGoal = defaultMonthlyGoal;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      setSelectedCategoryName(nextCategoryName);
+      setReductionPct(nextReductionPct);
+      setMonthlySavingsGoal(nextMonthlyGoal);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [snapshot.topCategories, snapshot.currentMonthTotal]);
+
+  useEffect(() => {
+    void trackEvent({
+      name: "insights_viewed",
+      context: "insights",
+      metadata: {
+        monthLabel,
+        year,
+      },
+    });
+  }, [monthLabel, year]);
+
+  useEffect(() => {
+    const payload: PersistedSimulatorState = {
+      categoryName: selectedCategoryName,
+      reductionPct,
+      monthlySavingsGoal,
+    };
+
+    window.localStorage.setItem(
+      INSIGHTS_SIMULATOR_STORAGE_KEY,
+      JSON.stringify(payload)
+    );
+  }, [selectedCategoryName, reductionPct, monthlySavingsGoal]);
+
+  useEffect(() => {
+    if (!selectedCategoryName) return;
+    void trackEvent({
+      name: "insights_whatif_changed",
+      context: "insights",
+      metadata: {
+        categoryName: selectedCategoryName,
+        reductionPct,
+      },
+    });
+  }, [selectedCategoryName, reductionPct]);
+
+  useEffect(() => {
+    void trackEvent({
+      name: "insights_goal_updated",
+      context: "insights",
+      metadata: {
+        monthlySavingsGoal,
+      },
+    });
+  }, [monthlySavingsGoal]);
+
+  const selectedCategory =
+    snapshot.topCategories.find((category) => category.name === selectedCategoryName) ??
+    snapshot.topCategories[0];
+
+  const scenario = useMemo(() => {
+    if (!selectedCategory) {
+      return {
+        monthlySavings: 0,
+        annualSavings: 0,
+        simulatedTotal: snapshot.currentMonthTotal,
+      };
+    }
+
+    const monthlySavings = (selectedCategory.total * reductionPct) / 100;
+    return {
+      monthlySavings,
+      annualSavings: monthlySavings * 12,
+      simulatedTotal: Math.max(0, snapshot.currentMonthTotal - monthlySavings),
+    };
+  }, [selectedCategory, reductionPct, snapshot.currentMonthTotal]);
+
+  const savingsProgressPct =
+    monthlySavingsGoal > 0
+      ? Math.min(100, (scenario.monthlySavings / monthlySavingsGoal) * 100)
+      : 0;
+
+  const categoryOptions = snapshot.topCategories.map((category) => ({
+    value: category.name,
+    label: category.name,
+  }));
   const safeActiveCategoryIndex = Math.min(
     activeCategoryIndex,
     Math.max(snapshot.topCategories.length - 1, 0)
@@ -91,10 +230,37 @@ export function InsightsPanel({ snapshot, baseCurrency, monthLabel, year }: Insi
           previousToLatestMonth.total) *
         100
       : 0;
+  const financialHealthSeverity: "warning" | "info" | "success" =
+    snapshot.financialHealth.score >= 75
+      ? "success"
+      : snapshot.financialHealth.score >= 55
+        ? "info"
+        : "warning";
+
+  const getPillarTone = (score: number) => {
+    if (score >= 75) {
+      return {
+        text: "text-emerald-700",
+        bar: "[&::-webkit-progress-value]:bg-emerald-500 [&::-moz-progress-bar]:bg-emerald-500",
+      };
+    }
+
+    if (score >= 55) {
+      return {
+        text: "text-amber-700",
+        bar: "[&::-webkit-progress-value]:bg-amber-500 [&::-moz-progress-bar]:bg-amber-500",
+      };
+    }
+
+    return {
+      text: "text-rose-700",
+      bar: "[&::-webkit-progress-value]:bg-rose-500 [&::-moz-progress-bar]:bg-rose-500",
+    };
+  };
 
   return (
     <section className="space-y-4" aria-label="Panel de insights accionables">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card className="surface-card md:col-span-1">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-zinc-600">Gasto actual</CardTitle>
@@ -135,28 +301,236 @@ export function InsightsPanel({ snapshot, baseCurrency, monthLabel, year }: Insi
             <p className="mt-1 text-sm text-zinc-500">Estimación al ritmo actual</p>
           </CardContent>
         </Card>
+
+        <Card className="surface-card md:col-span-1">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-sm text-zinc-600">Salud financiera</CardTitle>
+              <SeverityBadge severity={financialHealthSeverity} />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-3xl font-bold text-zinc-900 [font-variant-numeric:tabular-nums]">
+              {snapshot.financialHealth.score}/100
+            </p>
+            <p className="text-sm text-zinc-600">Estado {snapshot.financialHealth.label}</p>
+            <p className="text-xs text-zinc-500">{snapshot.financialHealth.summary}</p>
+          </CardContent>
+        </Card>
       </div>
+
+      <Card className="surface-card">
+        <CardHeader>
+          <CardTitle>Desglose del score de salud</CardTitle>
+          <p className="text-xs text-zinc-500">
+            Cada pilar ayuda a entender dónde estás fuerte y dónde conviene priorizar ajustes.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {snapshot.financialHealth.pillars.map((pillar) => (
+              <article key={pillar.key} className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-zinc-900">{pillar.label}</p>
+                  <p className={`text-xs font-semibold ${getPillarTone(pillar.score).text}`}>
+                    {pillar.score}/100
+                  </p>
+                </div>
+                <progress
+                  max={100}
+                  value={pillar.score}
+                  className={`mb-2 h-2 w-full overflow-hidden rounded-full [&::-webkit-progress-bar]:bg-zinc-200 ${getPillarTone(pillar.score).bar}`}
+                  aria-label={`Puntaje de ${pillar.label}`}
+                />
+                <p className="text-xs leading-relaxed text-zinc-600">{pillar.explanation}</p>
+              </article>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {snapshot.hasActionableInsights && snapshot.actionableIdeas.length > 0 && (
         <Card className="surface-card">
           <CardHeader>
             <CardTitle>5 ideas accionables para mejorar tu gasto</CardTitle>
+            <p className="text-xs text-zinc-500">
+              Explora cada idea y abre el detalle solo cuando quieras profundizar.
+            </p>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-              {snapshot.actionableIdeas.map((idea) => (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {snapshot.actionableIdeas.map((idea, index) => {
+                const isExpanded = expandedIdeaIndex === index;
+
+                return (
                 <article key={idea.title} className="rounded-xl border border-zinc-200 bg-zinc-50 p-3" aria-label={idea.title}>
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-zinc-900">{idea.title}</p>
                     <SeverityBadge severity={idea.severity} />
                   </div>
-                  <p className="text-xs leading-relaxed text-zinc-600">{idea.description}</p>
+                  <p className="mb-2 text-xs leading-relaxed text-zinc-600">{idea.description}</p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-auto px-2 py-1 text-xs"
+                    aria-expanded={isExpanded}
+                    aria-controls={`idea-detail-${index}`}
+                    onClick={() =>
+                      setExpandedIdeaIndex((current) => (current === index ? null : index))
+                    }
+                  >
+                    {isExpanded ? "Ocultar detalle" : "Ver detalle"}
+                  </Button>
+
+                  {isExpanded && (
+                    <div id={`idea-detail-${index}`} className="mt-2 space-y-2 rounded-lg border border-zinc-200 bg-white p-3 text-xs leading-relaxed text-zinc-600">
+                      <p>
+                        <span className="font-semibold text-zinc-700">Por qué importa:</span>{" "}
+                        {idea.whyItMatters}
+                      </p>
+                      <p>
+                        <span className="font-semibold text-zinc-700">Acción recomendada:</span>{" "}
+                        {idea.recommendedAction}
+                      </p>
+                      <p>
+                        <span className="font-semibold text-zinc-700">Impacto estimado:</span>{" "}
+                        {idea.impactEstimate}
+                      </p>
+                    </div>
+                  )}
                 </article>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
       )}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="surface-card">
+          <CardHeader>
+            <CardTitle>Simulador What-if</CardTitle>
+            <p className="text-xs text-zinc-500">
+              Ajusta categoría y porcentaje para ver impacto inmediato en el total mensual.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {categoryOptions.length === 0 ? (
+              <p className="text-sm text-zinc-500">
+                Registra más actividad para habilitar la simulación por categoría.
+              </p>
+            ) : (
+              <>
+                <Select
+                  id="what-if-category"
+                  name="what-if-category"
+                  label="Categoría a optimizar"
+                  options={categoryOptions}
+                  value={selectedCategory?.name ?? ""}
+                  onChange={(event) => setSelectedCategoryName(event.target.value)}
+                />
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-zinc-700">Reducción simulada</p>
+                    <p className="rounded-md bg-zinc-100 px-2 py-0.5 text-sm font-semibold text-zinc-900">
+                      {reductionPct}%
+                    </p>
+                  </div>
+                  <input
+                    id="what-if-reduction"
+                    type="range"
+                    min={1}
+                    max={80}
+                    step={1}
+                    value={reductionPct}
+                    onChange={(event) => setReductionPct(Number(event.target.value))}
+                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-zinc-200"
+                    aria-label="Porcentaje de reducción simulada"
+                  />
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                    <p className="text-xs text-zinc-500">Ahorro mensual</p>
+                    <p className="text-sm font-semibold text-zinc-900">
+                      {formatCurrency(scenario.monthlySavings, baseCurrency)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                    <p className="text-xs text-zinc-500">Ahorro anual</p>
+                    <p className="text-sm font-semibold text-zinc-900">
+                      {formatCurrency(scenario.annualSavings, baseCurrency)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                    <p className="text-xs text-zinc-500">Mes simulado</p>
+                    <p className="text-sm font-semibold text-zinc-900">
+                      {formatCurrency(scenario.simulatedTotal, baseCurrency)}
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="surface-card">
+          <CardHeader>
+            <CardTitle>Meta de ahorro y progreso</CardTitle>
+            <p className="text-xs text-zinc-500">
+              Define una meta realista y usa el simulador para validar si llegas al objetivo.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Input
+              id="monthly_savings_goal"
+              name="monthly_savings_goal"
+              type="number"
+              min="0"
+              step="0.01"
+              label="Meta mensual de ahorro"
+              value={Number.isFinite(monthlySavingsGoal) ? monthlySavingsGoal : 0}
+              onChange={(event) => setMonthlySavingsGoal(Number(event.target.value) || 0)}
+            />
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2 text-sm">
+                <p className="text-zinc-600">Progreso estimado con la simulación actual</p>
+                <p className="font-semibold text-zinc-900">{savingsProgressPct.toFixed(1)}%</p>
+              </div>
+              <progress
+                max={100}
+                value={savingsProgressPct}
+                className="h-2 w-full overflow-hidden rounded-full [&::-webkit-progress-bar]:bg-zinc-200 [&::-webkit-progress-value]:bg-emerald-500 [&::-moz-progress-bar]:bg-emerald-500"
+                aria-label="Progreso de meta de ahorro"
+              />
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                <p className="text-xs text-zinc-500">Meta mensual</p>
+                <p className="text-sm font-semibold text-zinc-900">
+                  {formatCurrency(monthlySavingsGoal, baseCurrency)}
+                </p>
+              </div>
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                <p className="text-xs text-zinc-500">Brecha restante</p>
+                <p className="text-sm font-semibold text-zinc-900">
+                  {formatCurrency(
+                    Math.max(0, monthlySavingsGoal - scenario.monthlySavings),
+                    baseCurrency
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-zinc-500">
+              Esta meta se guarda en tu navegador para {monthLabel} {year} y se usa como referencia de planificación.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="grid gap-4 xl:grid-cols-12">
         <Card className="surface-card xl:col-span-7">

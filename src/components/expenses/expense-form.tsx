@@ -39,7 +39,7 @@ export function ExpenseForm({ categories, expense, onDone }: ExpenseFormProps) {
 
   const categoryOptions = categories.map((c) => ({
     value: c.id,
-    label: `${c.icon} ${c.name}`,
+    label: c.name,
   }));
 
   const currencyOptions = SUPPORTED_CURRENCIES.map((c) => ({

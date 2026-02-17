@@ -9,6 +9,7 @@ import {
 } from "@/lib/validators/expense.schema";
 import * as expenseService from "@/services/expense.service";
 import * as exchangeRateService from "@/services/exchange-rate.service";
+import { trackProductEvent } from "@/services/product-events.service";
 
 export type ExpenseActionState = {
   success?: boolean;
@@ -78,6 +79,15 @@ export async function createExpenseAction(
       exchange_rate_used,
     });
 
+    await trackProductEvent(supabase, {
+      name: "expense_created",
+      context: "expenses",
+      metadata: {
+        category_id: result.data.category_id,
+        currency: result.data.currency,
+      },
+    });
+
     revalidatePath("/expenses");
     revalidatePath("/dashboard");
     return { success: true };
@@ -137,6 +147,15 @@ export async function updateExpenseAction(
       exchange_rate_used,
     });
 
+    await trackProductEvent(supabase, {
+      name: "expense_updated",
+      context: "expenses",
+      metadata: {
+        expense_id: result.data.id,
+        category_id: result.data.category_id,
+      },
+    });
+
     revalidatePath("/expenses");
     revalidatePath("/dashboard");
     return { success: true };
@@ -161,6 +180,13 @@ export async function deleteExpenseAction(
   try {
     const supabase = await createClient();
     await expenseService.deleteExpense(supabase, result.data.id);
+    await trackProductEvent(supabase, {
+      name: "expense_deleted",
+      context: "expenses",
+      metadata: {
+        expense_id: result.data.id,
+      },
+    });
     revalidatePath("/expenses");
     revalidatePath("/dashboard");
     return { success: true };

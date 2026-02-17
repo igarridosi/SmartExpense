@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loginSchema, signupSchema } from "@/lib/validators/auth.schema";
+import { trackProductEvent } from "@/services/product-events.service";
 
 export type AuthActionState = {
   error?: string;
@@ -32,6 +33,11 @@ export async function signIn(
   if (error) {
     return { error: "Correo o contraseña incorrectos" };
   }
+
+  await trackProductEvent(supabase, {
+    name: "auth_login_success",
+    context: "auth",
+  });
 
   revalidatePath("/", "layout");
   redirect("/dashboard");
@@ -69,6 +75,11 @@ export async function signUp(
   if (error) {
     return { error: "No se pudo crear la cuenta. Intenta con otro correo." };
   }
+
+  await trackProductEvent(supabase, {
+    name: "auth_signup_success",
+    context: "auth",
+  });
 
   revalidatePath("/", "layout");
   redirect("/dashboard");
