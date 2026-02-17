@@ -55,8 +55,8 @@ function SeverityBadge({ severity }: { severity: "info" | "success" | "warning" 
   };
 
   const labels: Record<typeof severity, string> = {
-    info: "Dato clave",
-    success: "Favorable",
+    info: "Info",
+    success: "Bien",
     warning: "Atención",
   };
 
@@ -80,7 +80,7 @@ export function InsightsPanel({ snapshot, baseCurrency, monthLabel, year }: Insi
     snapshot.topCategories[0]?.name ?? ""
   );
   const [reductionPct, setReductionPct] = useState(10);
-  const [expandedIdeaIndex, setExpandedIdeaIndex] = useState<number | null>(0);
+  const [selectedIdeaIndex, setSelectedIdeaIndex] = useState<number | null>(0);
   const [monthlySavingsGoal, setMonthlySavingsGoal] = useState(
     Math.round(snapshot.currentMonthTotal * 0.1 * 100) / 100
   );
@@ -198,6 +198,26 @@ export function InsightsPanel({ snapshot, baseCurrency, monthLabel, year }: Insi
     monthlySavingsGoal > 0
       ? Math.min(100, (scenario.monthlySavings / monthlySavingsGoal) * 100)
       : 0;
+  const weeklySavings = scenario.monthlySavings / 4.33;
+  const savingsImpactPct =
+    snapshot.currentMonthTotal > 0
+      ? (scenario.monthlySavings / snapshot.currentMonthTotal) * 100
+      : 0;
+  const goalGap = Math.max(0, monthlySavingsGoal - scenario.monthlySavings);
+  const goalReached = monthlySavingsGoal > 0 && scenario.monthlySavings >= monthlySavingsGoal;
+  const selectedCategoryTotal = selectedCategory?.total ?? 0;
+  const requiredReductionPctRaw =
+    selectedCategoryTotal > 0
+      ? (monthlySavingsGoal / selectedCategoryTotal) * 100
+      : 0;
+  const requiredReductionPct = Math.min(80, Math.max(1, Math.round(requiredReductionPctRaw)));
+  const goalReachableWithCategory =
+    monthlySavingsGoal <= 0 ||
+    (selectedCategoryTotal > 0 && requiredReductionPctRaw <= 80);
+  const goalCoveragePct =
+    monthlySavingsGoal > 0
+      ? Math.min(100, (scenario.monthlySavings / monthlySavingsGoal) * 100)
+      : 0;
 
   const categoryOptions = snapshot.topCategories.map((category) => ({
     value: category.name,
@@ -236,6 +256,8 @@ export function InsightsPanel({ snapshot, baseCurrency, monthLabel, year }: Insi
       : snapshot.financialHealth.score >= 55
         ? "info"
         : "warning";
+  const selectedIdea =
+    selectedIdeaIndex !== null ? snapshot.actionableIdeas[selectedIdeaIndex] : null;
 
   const getPillarTone = (score: number) => {
     if (score >= 75) {
@@ -360,48 +382,61 @@ export function InsightsPanel({ snapshot, baseCurrency, monthLabel, year }: Insi
           <CardContent>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {snapshot.actionableIdeas.map((idea, index) => {
-                const isExpanded = expandedIdeaIndex === index;
+                const isSelected = selectedIdeaIndex === index;
 
                 return (
-                <article key={idea.title} className="rounded-xl border border-zinc-200 bg-zinc-50 p-3" aria-label={idea.title}>
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-zinc-900">{idea.title}</p>
-                    <SeverityBadge severity={idea.severity} />
-                  </div>
-                  <p className="mb-2 text-xs leading-relaxed text-zinc-600">{idea.description}</p>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="h-auto px-2 py-1 text-xs"
-                    aria-expanded={isExpanded}
-                    aria-controls={`idea-detail-${index}`}
-                    onClick={() =>
-                      setExpandedIdeaIndex((current) => (current === index ? null : index))
-                    }
+                  <article
+                    key={idea.title}
+                    className={`rounded-xl border p-3 transition-colors ${
+                      isSelected
+                        ? "border-zinc-300 bg-white"
+                        : "border-zinc-200 bg-zinc-50"
+                    }`}
+                    aria-label={idea.title}
                   >
-                    {isExpanded ? "Ocultar detalle" : "Ver detalle"}
-                  </Button>
-
-                  {isExpanded && (
-                    <div id={`idea-detail-${index}`} className="mt-2 space-y-2 rounded-lg border border-zinc-200 bg-white p-3 text-xs leading-relaxed text-zinc-600">
-                      <p>
-                        <span className="font-semibold text-zinc-700">Por qué importa:</span>{" "}
-                        {idea.whyItMatters}
-                      </p>
-                      <p>
-                        <span className="font-semibold text-zinc-700">Acción recomendada:</span>{" "}
-                        {idea.recommendedAction}
-                      </p>
-                      <p>
-                        <span className="font-semibold text-zinc-700">Impacto estimado:</span>{" "}
-                        {idea.impactEstimate}
-                      </p>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-zinc-900">{idea.title}</p>
+                      <SeverityBadge severity={idea.severity} />
                     </div>
-                  )}
-                </article>
+                    <p className="mb-3 text-xs leading-relaxed text-zinc-600">{idea.description}</p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-auto px-2 py-1 text-xs"
+                      aria-pressed={isSelected}
+                      onClick={() =>
+                        setSelectedIdeaIndex((current) => (current === index ? null : index))
+                      }
+                    >
+                      {isSelected ? "Ocultar detalle" : "Ver detalle"}
+                    </Button>
+                  </article>
                 );
               })}
             </div>
+
+            {selectedIdea && (
+              <article className="mt-4 rounded-xl border border-zinc-200 bg-white p-4" aria-label={`Detalle de ${selectedIdea.title}`}>
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-zinc-900">Detalle de: {selectedIdea.title}</p>
+                  <SeverityBadge severity={selectedIdea.severity} />
+                </div>
+                <div className="space-y-2 text-sm leading-relaxed text-zinc-700">
+                  <p>
+                    <span className="font-semibold text-zinc-900">Por qué importa:</span>{" "}
+                    {selectedIdea.whyItMatters}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-zinc-900">Acción recomendada:</span>{" "}
+                    {selectedIdea.recommendedAction}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-zinc-900">Impacto estimado:</span>{" "}
+                    {selectedIdea.impactEstimate}
+                  </p>
+                </div>
+              </article>
+            )}
           </CardContent>
         </Card>
       )}
@@ -411,7 +446,7 @@ export function InsightsPanel({ snapshot, baseCurrency, monthLabel, year }: Insi
           <CardHeader>
             <CardTitle>Simulador What-if</CardTitle>
             <p className="text-xs text-zinc-500">
-              Ajusta categoría y porcentaje para ver impacto inmediato en el total mensual.
+              Selecciona una categoría y define cuánto reducir para estimar si llegas a tu meta.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -432,7 +467,7 @@ export function InsightsPanel({ snapshot, baseCurrency, monthLabel, year }: Insi
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium text-zinc-700">Reducción simulada</p>
+                    <p className="text-sm font-medium text-zinc-700">Reducción aplicada</p>
                     <p className="rounded-md bg-zinc-100 px-2 py-0.5 text-sm font-semibold text-zinc-900">
                       {reductionPct}%
                     </p>
@@ -450,24 +485,67 @@ export function InsightsPanel({ snapshot, baseCurrency, monthLabel, year }: Insi
                   />
                 </div>
 
+                {monthlySavingsGoal > 0 && selectedCategory && (
+                  <div className="rounded-lg border border-zinc-200 bg-white p-3">
+                    <p className="text-xs text-zinc-500">Ajuste recomendado para tu meta</p>
+                    <p className="text-sm font-semibold text-zinc-900">
+                      {goalReachableWithCategory
+                        ? `Para cubrir tu meta desde ${selectedCategory.name}, necesitarías reducir aprox. ${requiredReductionPct}% en esta categoría.`
+                        : `Tu meta es más alta que el máximo simulable en ${selectedCategory.name}. Con 80% de reducción aún no llegas solo con esta categoría.`}
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setReductionPct(requiredReductionPct)}
+                      >
+                        Aplicar recomendación ({requiredReductionPct}%)
+                      </Button>
+                      <span className="text-xs text-zinc-500">
+                        Basado en tu meta mensual actual.
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid gap-2 sm:grid-cols-3">
                   <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                    <p className="text-xs text-zinc-500">Ahorro mensual</p>
+                    <p className="text-xs text-zinc-500">Ahorro estimado</p>
                     <p className="text-sm font-semibold text-zinc-900">
                       {formatCurrency(scenario.monthlySavings, baseCurrency)}
                     </p>
                   </div>
                   <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                    <p className="text-xs text-zinc-500">Ahorro anual</p>
+                    <p className="text-xs text-zinc-500">Cobertura de meta</p>
                     <p className="text-sm font-semibold text-zinc-900">
-                      {formatCurrency(scenario.annualSavings, baseCurrency)}
+                      {goalCoveragePct.toFixed(1)}%
                     </p>
                   </div>
                   <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                    <p className="text-xs text-zinc-500">Mes simulado</p>
+                    <p className="text-xs text-zinc-500">Recorte sobre tu gasto</p>
                     <p className="text-sm font-semibold text-zinc-900">
+                      {savingsImpactPct.toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-lg border border-zinc-200 bg-white p-3">
+                    <p className="text-xs text-zinc-500">Nuevo gasto mensual estimado</p>
+                    <p className="text-base font-semibold text-zinc-900">
                       {formatCurrency(scenario.simulatedTotal, baseCurrency)}
                     </p>
+                    <p className="text-xs text-zinc-500">
+                      Antes: {formatCurrency(snapshot.currentMonthTotal, baseCurrency)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-zinc-200 bg-white p-3">
+                    <p className="text-xs text-zinc-500">Impacto semanal estimado</p>
+                    <p className="text-base font-semibold text-zinc-900">
+                      {formatCurrency(weeklySavings, baseCurrency)}
+                    </p>
+                    <p className="text-xs text-zinc-500">Ahorro potencial por semana</p>
                   </div>
                 </div>
               </>
@@ -517,13 +595,18 @@ export function InsightsPanel({ snapshot, baseCurrency, monthLabel, year }: Insi
               <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
                 <p className="text-xs text-zinc-500">Brecha restante</p>
                 <p className="text-sm font-semibold text-zinc-900">
-                  {formatCurrency(
-                    Math.max(0, monthlySavingsGoal - scenario.monthlySavings),
-                    baseCurrency
-                  )}
+                  {formatCurrency(goalGap, baseCurrency)}
                 </p>
               </div>
             </div>
+
+            {monthlySavingsGoal > 0 && (
+              <div className={`rounded-lg border px-3 py-2 text-sm ${goalReached ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
+                {goalReached
+                  ? "Con esta simulación ya cumples tu meta mensual de ahorro."
+                  : `Con esta simulación todavía faltan ${formatCurrency(goalGap, baseCurrency)} para llegar a tu meta.`}
+              </div>
+            )}
 
             <p className="text-xs text-zinc-500">
               Esta meta se guarda en tu navegador para {monthLabel} {year} y se usa como referencia de planificación.
