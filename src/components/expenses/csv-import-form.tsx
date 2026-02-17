@@ -117,6 +117,7 @@ export function CsvImportForm({ baseCurrency }: CsvImportFormProps) {
       amount: row.amount,
       currency: row.currency,
       category: row.category,
+      description: row.description,
       defaults_applied: row.defaults_applied,
     }));
 
