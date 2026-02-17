@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -47,4 +49,11 @@ jobs:
             echo "CHROMATIC_PROJECT_TOKEN no configurado. Se omite Chromatic."
             exit 0
           fi
+
+          COMMIT_COUNT=$(git rev-list --count HEAD)
+          if [ "$COMMIT_COUNT" -lt 2 ]; then
+            echo "Repositorio con menos de 2 commits. Chromatic necesita baseline para comparar; se omite en esta ejecución."
+            exit 0
+          fi
+
           npx chromatic --project-token="$CHROMATIC_PROJECT_TOKEN" --exit-zero-on-changes
